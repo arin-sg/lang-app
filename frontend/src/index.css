@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  /* Theme: Cheerful Nanobanana
+    Aesthetic: Warm, sunny, soft, bubbly.
+  */
+
+  /* Background: A very soft, creamy off-white */
+  --color-background: hsl(45 100% 99%);
+  /* Foreground: A warm, deep brownish-gray instead of harsh black */
+  --color-foreground: hsl(30 10% 20%);
+
+  /* Card: Pure white to pop against the creamy background */
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(30 10% 20%);
+
+  /* Popover: Same as card */
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(30 10% 20%);
+
+  /* Primary: The sunny "banana" yellow/gold */
+  --color-primary: hsl(47 100% 50%);
+  /* Primary text: Dark brown for contrast on the yellow */
+  --color-primary-foreground: hsl(30 20% 15%);
+
+  /* Secondary: A soft, pale yellow for lighter buttons */
+  --color-secondary: hsl(50 100% 91%);
+  --color-secondary-foreground: hsl(30 20% 15%);
+
+  /* Muted: Very subtle warm backgrounds (like input interiors) */
+  --color-muted: hsl(45 100% 96%);
+  --color-muted-foreground: hsl(30 10% 50%);
+
+  /* Accent: Used for hover states. A very pale sky blue for nice contrast */
+  --color-accent: hsl(200 90% 94%);
+  --color-accent-foreground: hsl(30 10% 20%);
+
+  /* Destructive: A slightly warmer red */
+  --color-destructive: hsl(0 85% 60%);
+  --color-destructive-foreground: hsl(0 0% 98%);
+
+  /* Border/Input: Soft warm pale yellow/gray for outlines */
+  --color-border: hsl(50 60% 90%);
+  --color-input: hsl(50 60% 90%);
+  /* Ring: Matches primary yellow for focus states */
+  --color-ring: hsl(47 100% 50%);
+
+  /* Radius: Increased heavily for the "bubbly" look */
+  --radius: 1.25rem;
+  --radius-lg: 1.25rem;
+  --radius-md: calc(1.25rem - 2px);
+  --radius-sm: calc(1.25rem - 4px);
+}
+
+/* Base styles */
+body {
+  @apply bg-background text-foreground font-sans antialiased;
+  /* Subtle warm grain texture to the background for depth */
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+}
+
+/* Ensure headings use the heaviest font weights for the bubbly look */
+h1, h2, h3, h4, h5, h6 {
+  @apply font-extrabold tracking-tight;
+}

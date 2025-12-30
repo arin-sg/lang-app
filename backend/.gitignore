@@ -1,0 +1,15 @@
+# Python
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+data/*.db
+data/*.sqlite
+
+# Environment
+.env
+
+# Alembic
+alembic/versions/__pycache__/
