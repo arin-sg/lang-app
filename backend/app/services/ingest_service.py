@@ -116,13 +116,9 @@ class IngestService:
                 'source_sentence': verified_item.evidence.sentence  # Add source context
             })
 
-            # Create EXTRACT_SEEN encounter with surface_form in context
-            self.graph_store.create_encounter(
-                item_id=item.id,
-                mode='extract',
-                correct=True,  # Not applicable for extraction
-                context_sentence=verified_item.evidence.sentence
-            )
+            # NOTE: No longer creating extraction encounters
+            # Items will have total_encounters=0 until first review
+            # This ensures stats only reflect actual learning performance
 
         # Step 4: Store edges
         stored_edges = []

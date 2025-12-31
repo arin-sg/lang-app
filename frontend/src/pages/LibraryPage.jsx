@@ -299,14 +299,16 @@ function LibraryItemCard({ item, onViewDetail, isSelected, onToggleSelect }) {
 
           {/* Stats */}
           <div className="text-sm text-muted-foreground flex items-center gap-2 flex-wrap">
-            <span>👁 Seen {stats.total_encounters} times</span>
-            {stats.total_encounters > 0 && (
+            {stats.total_encounters > 0 ? (
               <>
+                <span>👁 Seen {stats.total_encounters} times</span>
                 <span>•</span>
                 <span>✓ {Math.round(stats.success_rate * 100)}%</span>
                 <span>•</span>
                 <span>{formatTimeAgo(stats.last_seen)}</span>
               </>
+            ) : (
+              <span className="italic">Not reviewed yet</span>
             )}
           </div>
 
@@ -447,32 +449,42 @@ function ItemDetailModal({ item, onClose }) {
           {/* Stats Section */}
           <div className="space-y-3">
             <h3 className="text-xl font-extrabold">Your Performance</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              <Card className="border-2 bg-gradient-to-br from-primary/10 to-primary/5">
-                <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-extrabold text-primary">{stats.total_encounters}</div>
-                  <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Times Seen</div>
+            {stats.total_encounters > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <Card className="border-2 bg-gradient-to-br from-primary/10 to-primary/5">
+                  <CardContent className="pt-4 text-center">
+                    <div className="text-3xl font-extrabold text-primary">{stats.total_encounters}</div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Times Seen</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-2 bg-gradient-to-br from-green-500/10 to-green-500/5">
+                  <CardContent className="pt-4 text-center">
+                    <div className="text-3xl font-extrabold text-green-600">{stats.correct_count}</div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Correct</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-2 bg-gradient-to-br from-destructive/10 to-destructive/5">
+                  <CardContent className="pt-4 text-center">
+                    <div className="text-3xl font-extrabold text-destructive">{stats.incorrect_count}</div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Incorrect</div>
+                  </CardContent>
+                </Card>
+                <Card className="border-2 bg-gradient-to-br from-accent/30 to-accent/10">
+                  <CardContent className="pt-4 text-center">
+                    <div className="text-3xl font-extrabold">{Math.round(stats.success_rate * 100)}%</div>
+                    <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Success Rate</div>
+                  </CardContent>
+                </Card>
+              </div>
+            ) : (
+              <Card className="border-2 bg-muted/20">
+                <CardContent className="pt-6 text-center">
+                  <p className="text-lg text-muted-foreground">
+                    This item hasn't been reviewed yet. Try it in a review session!
+                  </p>
                 </CardContent>
               </Card>
-              <Card className="border-2 bg-gradient-to-br from-green-500/10 to-green-500/5">
-                <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-extrabold text-green-600">{stats.correct_count}</div>
-                  <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Correct</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 bg-gradient-to-br from-destructive/10 to-destructive/5">
-                <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-extrabold text-destructive">{stats.incorrect_count}</div>
-                  <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Incorrect</div>
-                </CardContent>
-              </Card>
-              <Card className="border-2 bg-gradient-to-br from-accent/30 to-accent/10">
-                <CardContent className="pt-4 text-center">
-                  <div className="text-3xl font-extrabold">{Math.round(stats.success_rate * 100)}%</div>
-                  <div className="text-xs text-muted-foreground uppercase font-semibold mt-1">Success Rate</div>
-                </CardContent>
-              </Card>
-            </div>
+            )}
           </div>
 
           {/* Relationships Section */}
