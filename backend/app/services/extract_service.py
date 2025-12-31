@@ -200,11 +200,14 @@ def build_extraction_prompt(text: str, max_items_per_type: int = 5) -> str:
     # Add explicit JSON-only and no-markdown guidance to reduce parse errors.
     return f"""Extract up to {max_items_per_type} key German items per type from this text.
 
-Return exactly ONE JSON object. Do not add markdown/code fences, prose, or extra text. If unsure about an item, skip it entirely unless you can give a best-effort english_gloss.
+Return exactly ONE JSON object with THREE required fields: "sentences", "items", and "edges".
+Do not add markdown/code fences, prose, or extra text.
+
+IMPORTANT: Your JSON MUST start with "sentences" field containing the input sentences.
 
 {text}
 
-JSON format:
+JSON format (MUST include all three fields):
 {{
   "sentences": [{{"idx": 0, "text": "Ich muss heute eine wichtige Entscheidung treffen."}}],
   "items": [
@@ -247,7 +250,7 @@ JSON format:
   "edges": []
 }}
 
-Return valid JSON only."""
+CRITICAL: Your response must be ONLY the JSON object above. Start with {{"sentences": [...], and include all three fields (sentences, items, edges)."""
 
 
 def split_into_sentence_batches(text: str, batch_size: int = 2) -> List[str]:
