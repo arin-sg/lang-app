@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import IngestPage from './pages/IngestPage'
 import LibraryPage from './pages/LibraryPage'
 import ReviewPage from './pages/ReviewPage'
+import DrillPage from './pages/DrillPage'
 import CoachPage from './pages/CoachPage'
 
 function App() {
@@ -14,6 +15,7 @@ function App() {
           <Route path="ingest" element={<IngestPage />} />
           <Route path="library" element={<LibraryPage />} />
           <Route path="review" element={<ReviewPage />} />
+          <Route path="drills" element={<DrillPage />} />
           <Route path="coach" element={<CoachPage />} />
         </Route>
       </Routes>

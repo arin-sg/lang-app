@@ -8,7 +8,7 @@ from app.config import settings
 from app.db.session import get_db
 from app.models import ErrorTag
 from app.utils.ollama_client import get_ollama_client
-from app.api import sources, review, library
+from app.api import sources, review, library, drills
 
 app = FastAPI(
     title="Language Learning App API",
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(sources.router, prefix="/api")
 app.include_router(review.router, prefix="/api")
 app.include_router(library.router, prefix="/api")
+app.include_router(drills.router, prefix="/api")
 
 
 @app.get("/")

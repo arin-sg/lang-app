@@ -55,6 +55,16 @@ export default function Layout() {
                   Review
                 </Link>
                 <Link
+                  to="/drills"
+                  className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-semibold transition-colors ${
+                    isActive('/drills')
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  }`}
+                >
+                  Drills
+                </Link>
+                <Link
                   to="/coach"
                   className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-semibold transition-colors ${
                     isActive('/coach')

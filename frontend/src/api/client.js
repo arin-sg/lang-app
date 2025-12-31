@@ -89,4 +89,24 @@ export const deleteItems = async (itemIds) => {
   return response.data;
 };
 
+/**
+ * Get drill session for today
+ * @param {number} limit - Maximum drills to return
+ * @returns {Promise} - Array of drill questions
+ */
+export const getDrillSession = async (limit = 10) => {
+  const response = await apiClient.get('/drills/today', { params: { limit } });
+  return response.data;
+};
+
+/**
+ * Grade a drill answer
+ * @param {object} request - Drill request with user's answer
+ * @returns {Promise} - Grading result with feedback
+ */
+export const gradeDrill = async (request) => {
+  const response = await apiClient.post('/drills/grade', request);
+  return response.data;
+};
+
 export default apiClient;

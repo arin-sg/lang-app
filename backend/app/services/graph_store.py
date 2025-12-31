@@ -187,6 +187,34 @@ class GraphStore:
             Encounter.item_id == item_id
         ).order_by(desc(Encounter.timestamp)).limit(limit).all()
 
+    def get_item_encounters(
+        self,
+        item_id: int,
+        limit: int = 10,
+        mode_filter: Optional[str] = None
+    ) -> List[Encounter]:
+        """
+        Get encounters for a specific item with optional mode filtering.
+
+        Args:
+            item_id: Item ID
+            limit: Max encounters to return
+            mode_filter: Optional filter by mode (e.g., 'extract', 'review', 'drill')
+
+        Returns:
+            List of Encounter objects
+        """
+        query = self.db.query(Encounter).filter(
+            Encounter.item_id == item_id
+        )
+
+        if mode_filter:
+            query = query.filter(Encounter.mode == mode_filter)
+
+        query = query.order_by(desc(Encounter.timestamp)).limit(limit)
+
+        return query.all()
+
     # ==================== REVIEW DECK OPERATIONS ====================
 
     def get_items_for_review(self, limit: int = 20) -> List[Dict[str, Any]]:

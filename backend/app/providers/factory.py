@@ -20,9 +20,11 @@ class LLMTask(str, Enum):
     Different tasks may use different providers or models:
     - EXTRACTION: Extract learnable items from German text (complex, needs powerful model)
     - EXPLANATION: Lemmatize words, provide explanations (simpler, can use faster model)
+    - DRILL_GENERATION: Generate drills and grade answers (moderate complexity)
     """
     EXTRACTION = "extraction"
     EXPLANATION = "explanation"
+    DRILL_GENERATION = "drill_generation"
 
 
 class ProviderType(str, Enum):
@@ -88,6 +90,10 @@ def get_llm_provider(task: LLMTask) -> LLMProvider:
     elif task == LLMTask.EXPLANATION:
         provider_type = _get_provider_type_from_config("explanation")
         model = _get_model_for_provider(provider_type, task)
+    elif task == LLMTask.DRILL_GENERATION:
+        # Default to extraction provider for drill generation
+        provider_type = _get_provider_type_from_config("extraction")
+        model = _get_model_for_provider(provider_type, LLMTask.EXTRACTION)
     else:
         raise ValueError(f"Unknown task: {task}")
 
