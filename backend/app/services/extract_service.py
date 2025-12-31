@@ -145,10 +145,12 @@ CRITICAL RULES (follow exactly):
    - Text "machen Ferien" → extract "Ferien machen"
    - Text "suchen ein Taxi" → extract "ein Taxi suchen"
 
-4. REQUIRED fields for EVERY item:
+4. REQUIRED fields for EVERY item (these fields are MANDATORY):
    - surface_form: EXACT text from input (copy exactly as appears)
    - canonical: Dictionary form (infinitive for verbs, with rules above)
-   - evidence.sentence: FULL sentence where found (NOT "full sentence" - copy the actual German sentence)
+   - english_gloss: English translation (never leave blank)
+   - evidence: MUST include full object with sentence_idx, sentence, left_context, right_context
+     - evidence.sentence: FULL sentence where found (copy the actual German sentence verbatim)
 
 5. Extract up to {{max_items_per_type}} valuable learning items per type.
    # NOTE: Use the numeric cap provided in the user prompt; do not fabricate items to hit the cap, and include ALL three types (words, chunks/phrases, patterns) when present.
