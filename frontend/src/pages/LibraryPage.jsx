@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { FileCode } from 'lucide-react';
 
 export default function LibraryPage() {
   const [items, setItems] = useState([]);
@@ -234,7 +235,8 @@ export default function LibraryPage() {
 
 // Library Item Card Component
 function LibraryItemCard({ item, onViewDetail, isSelected, onToggleSelect }) {
-  const { canonical_form, english_gloss, type, cefr_level, gender, stats } = item;
+  const { canonical_form, english_gloss, type, cefr_level, gender, structure_type, stats } = item;
+  const isPattern = type === 'pattern';
 
   const formatTimeAgo = (timestamp) => {
     if (!timestamp) return 'never';
@@ -266,16 +268,32 @@ function LibraryItemCard({ item, onViewDetail, isSelected, onToggleSelect }) {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <h3 className="text-xl font-bold break-words">{canonical_form}</h3>
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  {isPattern && <FileCode className="w-5 h-5 text-primary flex-shrink-0" />}
+                  <h3 className={`text-xl font-bold break-words ${isPattern ? 'font-mono' : ''}`}>
+                    {canonical_form}
+                  </h3>
+                </div>
                 <Badge variant="secondary" className="font-semibold flex-shrink-0">
                   {type === 'chunk' ? 'Phrase' : type.charAt(0).toUpperCase() + type.slice(1)}
                 </Badge>
               </div>
               <p className="text-muted-foreground">{english_gloss || 'No translation'}</p>
-              <div className="flex gap-2 mt-1 text-sm text-muted-foreground">
-                {gender && <span className="font-semibold">{gender}</span>}
-                {cefr_level && <span className="font-semibold">{cefr_level}</span>}
-              </div>
+              {isPattern ? (
+                <div className="flex gap-2 mt-1">
+                  {structure_type && (
+                    <span className="text-sm font-semibold bg-primary/10 px-2 py-1 rounded">
+                      {structure_type.replace('_', ' ')}
+                    </span>
+                  )}
+                  {cefr_level && <span className="text-sm font-semibold">{cefr_level}</span>}
+                </div>
+              ) : (
+                <div className="flex gap-2 mt-1 text-sm text-muted-foreground">
+                  {gender && <span className="font-semibold">{gender}</span>}
+                  {cefr_level && <span className="font-semibold">{cefr_level}</span>}
+                </div>
+              )}
             </div>
           </div>
 
@@ -309,6 +327,7 @@ function LibraryItemCard({ item, onViewDetail, isSelected, onToggleSelect }) {
 // Item Detail Modal Component
 function ItemDetailModal({ item, onClose }) {
   const { canonical_form, metadata, stats, related_items, recent_encounters } = item;
+  const isPattern = item.type === 'pattern';
 
   // Group related items by relation label
   const groupedRelations = related_items.reduce((acc, rel) => {
@@ -323,8 +342,11 @@ function ItemDetailModal({ item, onClose }) {
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between gap-4">
-            <span className="text-3xl font-extrabold">{canonical_form}</span>
-            <Badge variant="secondary" className="font-semibold text-base">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              {isPattern && <FileCode className="w-8 h-8 text-primary flex-shrink-0" />}
+              <span className={`text-3xl font-extrabold ${isPattern ? 'font-mono' : ''}`}>{canonical_form}</span>
+            </div>
+            <Badge variant="secondary" className="font-semibold text-base flex-shrink-0">
               {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
             </Badge>
           </DialogTitle>
@@ -336,33 +358,83 @@ function ItemDetailModal({ item, onClose }) {
             {metadata.english_gloss && (
               <p className="text-xl text-muted-foreground italic">{metadata.english_gloss}</p>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              {metadata.gender && (
-                <div className="bg-muted/30 p-3 rounded-lg">
-                  <strong className="text-sm text-muted-foreground uppercase">Gender:</strong>
-                  <div className="font-semibold">{metadata.gender}</div>
-                </div>
-              )}
-              {metadata.plural && (
-                <div className="bg-muted/30 p-3 rounded-lg">
-                  <strong className="text-sm text-muted-foreground uppercase">Plural:</strong>
-                  <div className="font-semibold">{metadata.plural}</div>
-                </div>
-              )}
-              {metadata.cefr_guess && (
-                <div className="bg-muted/30 p-3 rounded-lg">
-                  <strong className="text-sm text-muted-foreground uppercase">CEFR Level:</strong>
-                  <div className="font-semibold">{metadata.cefr_guess}</div>
-                </div>
-              )}
-              {metadata.pos_hint && (
-                <div className="bg-muted/30 p-3 rounded-lg">
-                  <strong className="text-sm text-muted-foreground uppercase">Part of Speech:</strong>
-                  <div className="font-semibold">{metadata.pos_hint}</div>
-                </div>
-              )}
-            </div>
-            {metadata.why_worth_learning && (
+
+            {/* Pattern-specific metadata */}
+            {isPattern ? (
+              <div className="space-y-3">
+                {metadata.grammar_rule && (
+                  <Card className="border-2 bg-accent/20">
+                    <CardContent className="pt-4">
+                      <strong className="text-sm text-muted-foreground uppercase">Grammar Rule:</strong>
+                      <p className="mt-2 font-semibold">{metadata.grammar_rule}</p>
+                    </CardContent>
+                  </Card>
+                )}
+                {metadata.slots && metadata.slots.length > 0 && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Placeholders:</strong>
+                    <div className="flex flex-wrap gap-2 mt-2 font-mono">
+                      {metadata.slots.map((slot, idx) => (
+                        <span key={idx} className="inline-block bg-primary/10 px-2 py-1 rounded text-sm font-semibold">
+                          [{slot}]
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {metadata.structure_type && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Structure Type:</strong>
+                    <div className="font-semibold mt-1">{metadata.structure_type.replace('_', ' ')}</div>
+                  </div>
+                )}
+                {metadata.cefr_level && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">CEFR Level:</strong>
+                    <div className="font-semibold mt-1">{metadata.cefr_level}</div>
+                  </div>
+                )}
+                {metadata.examples && metadata.examples.length > 0 && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Examples:</strong>
+                    <div className="space-y-1 mt-2">
+                      {metadata.examples.map((example, idx) => (
+                        <p key={idx} className="text-sm italic">"{example}"</p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {metadata.gender && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Gender:</strong>
+                    <div className="font-semibold">{metadata.gender}</div>
+                  </div>
+                )}
+                {metadata.plural && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Plural:</strong>
+                    <div className="font-semibold">{metadata.plural}</div>
+                  </div>
+                )}
+                {metadata.cefr_guess && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">CEFR Level:</strong>
+                    <div className="font-semibold">{metadata.cefr_guess}</div>
+                  </div>
+                )}
+                {metadata.pos_hint && (
+                  <div className="bg-muted/30 p-3 rounded-lg">
+                    <strong className="text-sm text-muted-foreground uppercase">Part of Speech:</strong>
+                    <div className="font-semibold">{metadata.pos_hint}</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {metadata.why_worth_learning && !isPattern && (
               <Card className="border-2 bg-accent/20">
                 <CardContent className="pt-4">
                   <strong className="text-sm text-muted-foreground uppercase">Why learn this:</strong>

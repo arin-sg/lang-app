@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
+import { FileCode } from 'lucide-react';
 
 export default function IngestPage() {
   const [text, setText] = useState('');
@@ -130,27 +131,35 @@ export default function IngestPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {result.items.map((item) => (
-                    <Card key={item.id} className="border bg-muted/20">
-                      <CardContent className="pt-4 space-y-2">
-                        <div className="flex items-center justify-between gap-4">
-                          <span className="text-lg font-bold">{item.canonical_form}</span>
-                          <Badge variant="secondary" className="font-semibold">
-                            {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
-                          </Badge>
-                        </div>
+                  {result.items.map((item) => {
+                    const isPattern = item.type === 'pattern';
+                    return (
+                      <Card key={item.id} className="border bg-muted/20">
+                        <CardContent className="pt-4 space-y-2">
+                          <div className="flex items-center justify-between gap-4">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              {isPattern && <FileCode className="w-5 h-5 text-primary flex-shrink-0" />}
+                              <span className={`text-lg font-bold break-words ${isPattern ? 'font-mono' : ''}`}>
+                                {item.canonical_form}
+                              </span>
+                            </div>
+                            <Badge variant="secondary" className="font-semibold flex-shrink-0">
+                              {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
+                            </Badge>
+                          </div>
 
-                        {/* Source sentence display */}
-                        {item.source_sentence && (
-                          <p className="text-sm italic text-muted-foreground pl-2 border-l-2 border-primary/30">
-                            "{item.source_sentence}"
-                          </p>
-                        )}
+                          {/* Source sentence display */}
+                          {item.source_sentence && (
+                            <p className="text-sm italic text-muted-foreground pl-2 border-l-2 border-primary/30">
+                              "{item.source_sentence}"
+                            </p>
+                          )}
 
-                        <div className="text-xs text-muted-foreground">ID: {item.id}</div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <div className="text-xs text-muted-foreground">ID: {item.id}</div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>

@@ -145,26 +145,32 @@ class CanonicalFormComputer:
 Surface form: {surface}
 POS: {pos or 'unknown'}
 
-Return ONLY the lemma (base dictionary form), nothing else.
+Return a JSON object: {{"lemma": "<single token>"}}
+- No markdown or code fences.
+- No labels/punctuation/quotes around the lemma value.
+- If unsure, echo the surface form as the lemma.
 
 Examples:
-- "Hunde" → "Hund"
-- "ging" → "gehen"
-- "schönen" → "schön"
-- "Entscheidungen" → "Entscheidung"
-
-Lemma:"""
+{{"lemma": "Hund"}} for "Hunde"
+{{"lemma": "gehen"}} for "ging"
+{{"lemma": "schön"}} for "schönen"
+{{"lemma": "Entscheidung"}} for "Entscheidungen"
+"""
 
         try:
-            response = await self.ollama_client.generate(
+            # Use JSON generation to reduce noisy completions; fallback is below.
+            response_dict = await self.ollama_client.generate_json(
                 prompt=prompt,
-                system_prompt="You are a German language expert. Return only the lemma, no explanations."
+                system_prompt="You are a German language expert. Return exactly one JSON object with a 'lemma' key. No markdown."
             )
-            # Extract lemma from response (should be just one word)
-            lemma = response.strip().split()[0] if response.strip() else surface
+            lemma = response_dict.get("lemma", "").strip()
+            if not lemma:
+                # Commenting instead of removing: legacy text parsing would have run here.
+                # response = await self.ollama_client.generate(...); lemma = response.strip().split()[0]
+                return surface
             return lemma
         except Exception:
-            # Fallback to surface form
+            # Fallback to surface form if JSON generation fails
             return surface
 
     def _fallback_lemmatize(self, surface: str) -> str:
@@ -213,6 +219,11 @@ Items:
 
 Return ONLY a JSON object like:
 {{"Hunde": "Hund", "ging": "gehen", "schönen": "schön"}}
+
+Strict rules:
+- No markdown/code fences.
+- Include every surface exactly as provided as keys.
+- If unsure, echo the surface form.
 
 JSON:"""
 
@@ -406,7 +417,7 @@ class VerificationService:
                 canonical_form = existing_item.canonical_form
                 verification_stats['deduplicated'] += 1
 
-            # Step 4: Validate canonical_form and surface_form are not empty (NEW)
+            # Step 4: Validate canonical_form and surface_form are not empty
             if not canonical_form or not canonical_form.strip():
                 verification_stats['invalid'] += 1
                 continue  # DROP items with blank canonical_form
@@ -414,6 +425,12 @@ class VerificationService:
             if not item.surface_form or not item.surface_form.strip():
                 verification_stats['invalid'] += 1
                 continue  # DROP items with blank surface_form
+
+            # Step 4b: NEW - Pattern-specific validation (defense in depth)
+            if item.type == "pattern":
+                if not item.pattern_meta or not item.pattern_meta.grammar_rule:
+                    verification_stats['invalid'] += 1
+                    continue  # DROP patterns without grammar_rule
 
             # Create verified item
             verified_item = VerifiedExtractionItem(
@@ -423,6 +440,7 @@ class VerificationService:
                 english_gloss=item.english_gloss,
                 pos_hint=item.pos_hint,
                 meta=item.meta,
+                pattern_meta=item.pattern_meta,  # NEW: Pass through pattern metadata
                 why_worth_learning=item.why_worth_learning,
                 evidence=item.evidence,
                 existing_item_id=existing_item.id if existing_item else None

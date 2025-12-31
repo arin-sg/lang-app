@@ -2,7 +2,7 @@
 Pydantic schemas for LLM extraction output.
 Matches the PRD Section 6.1 JSON structure.
 """
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Literal
 from pydantic import BaseModel, Field
 
 
@@ -22,6 +22,27 @@ class ExtractionMetadata(BaseModel):
     cefr_guess: Optional[str] = None
 
 
+class PatternMetadata(BaseModel):
+    """Metadata specific to pattern-type items."""
+    structure_type: Literal["connector", "verb_prep", "sentence_structure", "idiom"] = Field(
+        ...,
+        description="Category of grammatical pattern"
+    )
+    slots: List[str] = Field(
+        default_factory=list,
+        description="Placeholders in pattern template (e.g., ['KOMPARATIV', 'AKK'])"
+    )
+    grammar_rule: str = Field(
+        ...,
+        description="Brief explanation of the grammatical rule"
+    )
+    examples: Optional[List[str]] = Field(
+        None,
+        description="Example sentences demonstrating the pattern"
+    )
+    cefr_level: Optional[str] = None
+
+
 class ExtractionItem(BaseModel):
     """A single extracted learnable item."""
     type: str = Field(..., description="Type: word, chunk, or pattern")
@@ -29,7 +50,8 @@ class ExtractionItem(BaseModel):
     canonical: str = Field(..., description="The canonical form (for backward compatibility)")
     english_gloss: str = Field(..., description="English translation/meaning")
     pos_hint: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None  # LEGACY: For words/chunks
+    pattern_meta: Optional[PatternMetadata] = None  # NEW: For patterns
     why_worth_learning: Optional[str] = None
     evidence: ExtractionEvidence
 
@@ -68,7 +90,8 @@ class VerifiedExtractionItem(BaseModel):
     canonical_form: str = Field(..., description="Computed lemma/base form")
     english_gloss: str
     pos_hint: Optional[str] = None
-    meta: Optional[Dict[str, Any]] = None
+    meta: Optional[Dict[str, Any]] = None  # LEGACY: For words/chunks
+    pattern_meta: Optional[PatternMetadata] = None  # NEW: For patterns
     why_worth_learning: Optional[str] = None
     evidence: ExtractionEvidence
     existing_item_id: Optional[int] = Field(None, description="If deduplicated, ID of existing item")
