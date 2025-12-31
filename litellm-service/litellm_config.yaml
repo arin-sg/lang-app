@@ -1,0 +1,84 @@
+# ============================================
+# LiteLLM Proxy Configuration
+# German Language Learning App
+# ============================================
+
+model_list:
+  # ============================================
+  # EXTRACTION TASK - Powerful Model
+  # Used for: Extracting learnable items from German text
+  # ============================================
+  - model_name: extraction-model
+    litellm_params:
+      model: ollama/mistral:latest
+      api_base: http://localhost:11434
+      # Note: Ollama models don't need API keys
+
+  # ============================================
+  # EXPLANATION TASK - Fast Model
+  # Used for: Lemmatization, explanations, canonicalization
+  # ============================================
+  - model_name: explanation-model
+    litellm_params:
+      model: ollama/mistral:latest
+      api_base: http://localhost:11434
+
+  # ============================================
+  # FALLBACK PROVIDERS (Optional - Commented Out)
+  # Uncomment to enable cloud fallbacks for reliability
+  # ============================================
+
+  # OpenAI fallback for extraction (costs ~$0.15/1M tokens with gpt-4o-mini)
+  # - model_name: extraction-model-openai
+  #   litellm_params:
+  #     model: openai/gpt-4o-mini
+  #     api_key: os.environ/OPENAI_API_KEY
+
+  # Gemini fallback for explanation (free tier: 15 RPM, 1500 RPD)
+  # - model_name: explanation-model-gemini
+  #   litellm_params:
+  #     model: gemini/gemini-1.5-flash
+  #     api_key: os.environ/GEMINI_API_KEY
+
+# ============================================
+# ROUTER SETTINGS
+# ============================================
+router_settings:
+  # Load balancing strategy
+  # Options: simple-shuffle, least-busy, usage-based-routing, latency-based-routing
+  routing_strategy: simple-shuffle
+
+  # Retry and timeout settings
+  num_retries: 2
+  timeout: 60  # seconds (matches EXTRACTION_TIMEOUT_SECONDS)
+
+  # Cooldown failed models (disable after 3 consecutive failures)
+  allowed_fails: 3
+
+  # Fallback chains (optional - commented out by default)
+  # Uncomment to enable automatic fallback to cloud providers
+  # fallbacks:
+  #   - extraction-model: ["extraction-model-openai"]
+  #   - explanation-model: ["explanation-model-gemini"]
+
+  # Context window fallbacks (optional)
+  # Useful if input exceeds model's context window
+  # context_window_fallbacks:
+  #   - extraction-model: ["explanation-model"]
+
+# ============================================
+# GENERAL SETTINGS
+# ============================================
+general_settings:
+  # Explicitly disable database
+  store_model_in_db: false
+  database_url: null
+
+  # Cost tracking (requires Redis + database setup)
+  # Uncomment to enable cost tracking and budgets
+  # master_key: os.environ/LITELLM_MASTER_KEY
+  # database_url: postgresql://...
+
+  # Logging
+  # set_verbose: true  # Enable verbose logging for debugging
+  # json_logs: true    # Output logs in JSON format

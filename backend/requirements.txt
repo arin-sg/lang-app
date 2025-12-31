@@ -9,3 +9,6 @@ httpx==0.28.1
 
 # Verification and deduplication (rapidfuzz includes Levenshtein distance)
 rapidfuzz==3.6.1
+
+# Note: LiteLLM proxy now runs as a separate service (../litellm-service)
+# httpx is used by LiteLLMProvider to communicate with the proxy

@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 An AI-powered German language learning app with local-first architecture. The system extracts learnable items (words, phrases, patterns) from German text using a two-phase extraction pipeline with hallucination prevention, then provides personalized spaced repetition review.
 
-**Stack**: FastAPI (Python 3.10+), React + Vite, SQLite, Ollama (local LLM)
+**Stack**: FastAPI (Python 3.10+), React + Vite, SQLite, Multi-provider LLM support (Ollama, OpenAI, Gemini, HuggingFace via LiteLLM)
 
 **IMPORTANT**: The [prd.md](prd.md) file contains the complete Product Requirements Document and should be treated as the **single source of truth** for all planning, feature development, and verification purposes. Always consult the PRD when:
 - Planning new features or iterations
@@ -65,6 +65,10 @@ curl http://localhost:11434/api/tags
 
 # Health check
 curl http://localhost:8000/api/health
+
+# LiteLLM proxy (if using)
+curl http://localhost:4000/health
+curl http://localhost:4000/models
 ```
 
 ## Architecture
@@ -111,12 +115,154 @@ The system prevents LLM hallucinations through a verification pipeline:
    - Tracks: `correct` (boolean), `response_time_ms`, `error_type`, `confusion_target_id`
    - Enables spaced repetition and error pattern analysis
 
+### LLM Provider Architecture (Iteration 1.5.5)
+
+**Multi-Provider Support**: The app supports multiple LLM providers through a unified abstraction layer.
+
+**IMPORTANT**: LiteLLM now runs as a **separate service** in the `litellm-service/` directory to avoid environment variable conflicts with the backend database.
+
+**Architecture**:
+```
+Backend (Port 8000) → LiteLLM Service (Port 4000) → [Ollama | OpenAI | Gemini | ...]
+```
+
+**Provider Types**:
+1. **LITELLM** - Multi-provider gateway (100+ providers via separate service)
+2. **OLLAMA** - Local Ollama server (default, free, unlimited)
+3. **LM_STUDIO** - Local LM Studio server (planned)
+4. **OPENAI** - OpenAI GPT models (planned)
+5. **GEMINI** - Google Gemini models (planned)
+
+**Backend Configuration** (`backend/.env`):
+```bash
+# Provider Selection
+EXTRACTION_PROVIDER=ollama     # or litellm, lm_studio, openai, gemini
+EXPLANATION_PROVIDER=ollama    # Can use different providers for each task
+
+# Ollama Settings
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_EXTRACTION_MODEL=llama3.2
+OLLAMA_EXPLANATION_MODEL=llama3.2
+
+# LiteLLM Service Connection (when using EXTRACTION_PROVIDER=litellm)
+LITELLM_BASE_URL=http://localhost:4000
+LITELLM_EXTRACTION_MODEL=extraction-model
+LITELLM_EXPLANATION_MODEL=explanation-model
+```
+
+**LiteLLM Service Configuration** (`litellm-service/.env`):
+```bash
+# Cloud provider API keys (optional)
+OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
+ANTHROPIC_API_KEY=sk-ant-...
+HUGGINGFACE_API_KEY=hf_...
+
+# Note: NO DATABASE_URL here - isolated environment
+```
+
+**Task-Based Routing**: Different tasks can use different providers:
+- **EXTRACTION**: Complex task requiring powerful model (extract items from German text)
+- **EXPLANATION**: Simpler task (lemmatization, explanations) can use faster model
+
+**Provider Interface** (`app/providers/base.py`):
+```python
+class LLMProvider(ABC):
+    @abstractmethod
+    async def generate(self, prompt: str, ...) -> str:
+        """Generate text response"""
+
+    @abstractmethod
+    async def generate_json(self, prompt: str, ...) -> Dict[str, Any]:
+        """Generate structured JSON response"""
+
+    @abstractmethod
+    async def check_health(self) -> bool:
+        """Check provider availability"""
+
+    @abstractmethod
+    async def list_models(self) -> List[str]:
+        """List available models"""
+
+    @abstractmethod
+    async def close(self):
+        """Cleanup resources"""
+```
+
+**Factory Pattern** (`app/providers/factory.py`):
+```python
+from app.providers import get_llm_provider, LLMTask
+
+# Get provider for extraction (routes based on EXTRACTION_PROVIDER)
+provider = get_llm_provider(LLMTask.EXTRACTION)
+
+# Use provider
+response = await provider.generate_json(prompt, system_prompt=system)
+```
+
+**Exception Hierarchy** (`app/providers/exceptions.py`):
+- `LLMProviderError` (base)
+  - `LLMConnectionError` - Cannot connect to provider
+  - `LLMTimeoutError` - Request timed out
+  - `LLMAuthenticationError` - Invalid API key
+  - `LLMRateLimitError` - Rate limit exceeded
+  - `LLMQuotaExceededError` - Quota/budget exceeded
+  - `LLMModelNotFoundError` - Model not found
+  - `LLMInvalidResponseError` - Invalid JSON or format
+
+**LiteLLM Service Setup**:
+```bash
+# Terminal 1: Start LiteLLM service
+cd litellm-service
+./start_litellm.sh  # Runs on port 4000
+
+# Terminal 2: Start FastAPI backend
+cd backend
+source venv/bin/activate
+python run.py  # Configure EXTRACTION_PROVIDER=litellm in .env
+```
+
+**LiteLLM Configuration** (`litellm-service/litellm_config.yaml`):
+```yaml
+model_list:
+  # Ollama (local)
+  - model_name: extraction-model
+    litellm_params:
+      model: ollama/llama3.2
+      api_base: http://localhost:11434
+
+  # OpenAI (cloud, with fallback)
+  - model_name: extraction-model-openai
+    litellm_params:
+      model: openai/gpt-4o-mini
+      api_key: os.environ/OPENAI_API_KEY
+
+router_settings:
+  fallbacks:
+    - extraction-model: ["extraction-model-openai"]  # Automatic failover
+```
+
+**Switching Providers**:
+1. **Change provider type**: Update `EXTRACTION_PROVIDER` in `backend/.env`
+2. **Change model**: Update provider-specific model settings in `backend/.env`
+3. **Use LiteLLM**: Edit `litellm-service/litellm_config.yaml`, restart LiteLLM service (no backend restart needed)
+
+**See [litellm-service/README.md](litellm-service/README.md)** for comprehensive documentation on provider configuration, advanced features, and troubleshooting.
+
+**Provider-Specific Notes**:
+- **Ollama**: Free, local, unlimited. Best for development.
+- **LiteLLM**: Unified gateway with fallbacks, load balancing, cost tracking.
+- **OpenAI**: Paid (~$0.15-0.60/1M tokens). High quality.
+- **Gemini**: Free tier (15 RPM), then paid. Good balance.
+- **HuggingFace**: Free tier, pay for higher usage.
+- **LM Studio**: Local, free, OpenAI-compatible API.
+
 ### Service Layer Architecture
 
 **Repository Pattern**: `GraphStore` (`services/graph_store.py`) abstracts all database access.
 
 **Key Services**:
-- `ExtractService` - LLM extraction (raw output)
+- `ExtractService` - LLM extraction (raw output) - Uses `get_llm_provider(LLMTask.EXTRACTION)`
 - `VerificationService` - Verification pipeline orchestrator
 - `IngestService` - Orchestrates extract → verify → store
 - `ReviewService` - Generate review decks + record results
@@ -124,7 +270,13 @@ The system prevents LLM hallucinations through a verification pipeline:
 
 **Dependency Injection**: Each service has a factory function:
 ```python
+# Old pattern (direct Ollama)
 extract_service = get_extract_service(ollama_client)
+
+# New pattern (provider-agnostic)
+provider = get_llm_provider(LLMTask.EXTRACTION)
+extract_service = get_extract_service(provider)
+
 graph_store = get_graph_store(db)
 ```
 

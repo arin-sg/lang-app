@@ -10,10 +10,19 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite:///./data/lang_app.db"
 
+    # Provider Selection
+    extraction_provider: str = "ollama"
+    explanation_provider: str = "ollama"
+
     # Ollama
     ollama_base_url: str = "http://localhost:11434"
     ollama_extraction_model: str = "llama3.2"
     ollama_explanation_model: str = "llama3.2"
+
+    # LiteLLM
+    litellm_base_url: str = "http://localhost:4000"
+    litellm_extraction_model: str = "extraction-model"
+    litellm_explanation_model: str = "explanation-model"
 
     # API
     backend_host: str = "0.0.0.0"

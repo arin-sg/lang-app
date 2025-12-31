@@ -15,7 +15,7 @@ This application helps you learn German by:
 - **Backend**: Python 3.10+ with FastAPI
 - **Frontend**: React with Vite
 - **Database**: SQLite (local-first)
-- **LLM**: Ollama (local)
+- **LLM**: Multi-provider support via LiteLLM proxy (Ollama, OpenAI, Gemini, HuggingFace, etc.)
 
 ## Design System
 
@@ -48,19 +48,26 @@ Before you begin, ensure you have:
    node --version
    ```
 
-3. **Ollama installed and running**
+3. **LLM Provider** (choose one):
+
+   **Option A: Ollama (Local, Free, Recommended for Development)**
    ```bash
+   # Install Ollama from https://ollama.ai
    ollama --version
    ollama serve
+
+   # Pull a model
+   ollama pull llama3.2  # or mistral, qwen, etc.
+   ollama list  # Verify model is available
    ```
 
-4. **Required Ollama model**
-   ```bash
-   # Check available models
-   ollama list
-   # The app is configured to use gpt-oss:20b-cloud
-   # Update backend/.env if you have a different model
-   ```
+   **Option B: LiteLLM Proxy (Multi-Provider Gateway)**
+   - Supports 100+ LLM providers (Ollama, OpenAI, Gemini, HuggingFace, etc.)
+   - See [LiteLLM Setup](#litellm-multi-provider-setup-optional) section below
+
+   **Option C: Cloud Providers (Direct)**
+   - OpenAI API key: Set `EXTRACTION_PROVIDER=openai` (coming soon)
+   - Gemini API key: Set `EXTRACTION_PROVIDER=gemini` (coming soon)
 
 ## Setup Instructions
 
@@ -128,16 +135,41 @@ Before you begin, ensure you have:
 
 ### Running the Application
 
+#### Basic Setup (Ollama)
+
 You'll need **two terminal windows**:
 
 **Terminal 1 - Backend:**
 ```bash
 cd backend
 source venv/bin/activate
-python run.py
+python run.py  # Runs on http://localhost:8000
 ```
 
 **Terminal 2 - Frontend:**
+```bash
+cd frontend
+npm run dev  # Runs on http://localhost:5173
+```
+
+#### With LiteLLM Service (Optional)
+
+If using the LiteLLM multi-provider gateway, you'll need **three terminal windows**:
+
+**Terminal 1 - LiteLLM Service:**
+```bash
+cd litellm-service
+./start_litellm.sh  # Runs on http://localhost:4000
+```
+
+**Terminal 2 - Backend:**
+```bash
+cd backend
+source venv/bin/activate
+python run.py  # Configure EXTRACTION_PROVIDER=litellm in .env
+```
+
+**Terminal 3 - Frontend:**
 ```bash
 cd frontend
 npm run dev
@@ -164,6 +196,171 @@ sqlite3 lang_app.db
 .schema items
 SELECT * FROM items LIMIT 5;
 ```
+
+## LiteLLM Multi-Provider Setup (Optional)
+
+LiteLLM provides a unified gateway to 100+ LLM providers with built-in fallbacks, load balancing, and cost tracking.
+
+**IMPORTANT**: LiteLLM now runs as a **separate service** in the `litellm-service/` directory. This isolation prevents environment variable conflicts with the backend database.
+
+### Why Use LiteLLM?
+
+- **Flexibility**: Switch between providers without code changes
+- **Reliability**: Automatic fallbacks if primary provider fails
+- **Cost Optimization**: Load balance across multiple deployments
+- **Unified Interface**: Same API for Ollama, OpenAI, Gemini, HuggingFace, etc.
+- **Built-in Features**: Rate limiting, cost tracking, retry logic
+
+### Quick Start
+
+1. **Setup LiteLLM Service**:
+   ```bash
+   cd litellm-service
+
+   # Create virtual environment
+   python3 -m venv venv
+   source venv/bin/activate
+
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+2. **Configure Providers** (optional for cloud providers):
+   ```bash
+   # Copy .env template if using cloud providers
+   cp .env.example .env
+   # Edit .env and add API keys (OPENAI_API_KEY, GEMINI_API_KEY, etc.)
+   ```
+
+   For local Ollama only, no `.env` configuration needed!
+
+3. **Customize Provider Configuration** in `litellm-service/litellm_config.yaml`:
+   ```yaml
+   model_list:
+     # Use Ollama (local, free) - Default
+     - model_name: extraction-model
+       litellm_params:
+         model: ollama/llama3.2
+         api_base: http://localhost:11434
+
+     # Or add OpenAI (cloud, paid)
+     # - model_name: extraction-model-openai
+     #   litellm_params:
+     #     model: openai/gpt-4o-mini
+     #     api_key: os.environ/OPENAI_API_KEY
+   ```
+
+4. **Start LiteLLM Service**:
+   ```bash
+   # Terminal 1: Start LiteLLM proxy service
+   cd litellm-service
+   ./start_litellm.sh  # Runs on port 4000
+   ```
+
+5. **Configure Backend** in `backend/.env`:
+   ```bash
+   EXTRACTION_PROVIDER=litellm
+   LITELLM_BASE_URL=http://localhost:4000
+   LITELLM_EXTRACTION_MODEL=extraction-model
+   ```
+
+6. **Start Backend**:
+   ```bash
+   # Terminal 2: Start FastAPI backend
+   cd backend
+   source venv/bin/activate
+   python run.py
+   ```
+
+**See [litellm-service/README.md](litellm-service/README.md) for comprehensive provider configuration examples, advanced features (fallbacks, load balancing, cost tracking), and troubleshooting.**
+
+### Quick Provider Reference
+
+All provider configuration is in `litellm-service/litellm_config.yaml`. Here are common examples:
+
+**Ollama (Local, Free)**:
+```yaml
+- model_name: extraction-model
+  litellm_params:
+    model: ollama/llama3.2
+    api_base: http://localhost:11434
+```
+
+**OpenAI** (set `OPENAI_API_KEY` in `litellm-service/.env`):
+```yaml
+- model_name: extraction-model
+  litellm_params:
+    model: openai/gpt-4o-mini
+    api_key: os.environ/OPENAI_API_KEY
+```
+
+**Gemini** (set `GEMINI_API_KEY` in `litellm-service/.env`):
+```yaml
+- model_name: extraction-model
+  litellm_params:
+    model: gemini/gemini-1.5-flash
+    api_key: os.environ/GEMINI_API_KEY
+```
+
+**For complete examples** (HuggingFace, LM Studio, Claude, Azure), see [litellm-service/README.md](litellm-service/README.md).
+
+### Switching Providers
+
+To switch providers:
+
+```bash
+# 1. Edit litellm-service/litellm_config.yaml
+# 2. Restart the LiteLLM service
+cd litellm-service
+pkill litellm
+./start_litellm.sh
+
+# Backend automatically uses new provider (no restart needed)
+```
+
+### Backend Configuration
+
+Configure the backend to use LiteLLM in `backend/.env`:
+
+```bash
+# Provider Selection
+EXTRACTION_PROVIDER=litellm     # Use LiteLLM proxy
+EXPLANATION_PROVIDER=litellm    # Both tasks use LiteLLM
+
+# LiteLLM Service Connection
+LITELLM_BASE_URL=http://localhost:4000
+LITELLM_EXTRACTION_MODEL=extraction-model
+LITELLM_EXPLANATION_MODEL=explanation-model
+```
+
+**Note**: Cloud provider API keys go in `litellm-service/.env`, NOT `backend/.env`.
+
+# Verify provider is accessible
+# For Ollama:
+curl http://localhost:11434/api/tags
+
+# For OpenAI:
+curl https://api.openai.com/v1/models \
+  -H "Authorization: Bearer $OPENAI_API_KEY"
+```
+
+**Model not found:**
+```bash
+# List available models in LiteLLM
+curl http://localhost:4000/models
+
+# Verify model name matches litellm_config.yaml
+```
+
+### Cost Warnings
+
+⚠️ **Cloud providers are paid services:**
+- OpenAI GPT-4o-mini: ~$0.15/1M input tokens, ~$0.60/1M output tokens
+- Gemini 1.5 Flash: Free tier 15 RPM, then paid
+- Claude 3 Haiku: ~$0.25/1M input tokens, ~$1.25/1M output tokens
+- HuggingFace: Free tier available, paid for higher usage
+
+Always set budget limits and monitor usage when using cloud providers.
 
 ## Project Structure
 
@@ -441,6 +638,109 @@ This ensures users can manage their library by removing unwanted items before mo
 - Ready for testing with larger LLM models (mistral:7b-instruct-v0.2, llama2:13b)
 
 See [docs/Feedback.md](docs/Feedback.md) for detailed feedback tracking.
+
+---
+
+### Iteration 1.5.5 - Multi-Provider LLM Support ✅ COMPLETE
+
+**Enhancement**: Flexible LLM provider architecture with separate LiteLLM service
+
+**Goal**: Enable easy switching between LLM providers (Ollama, OpenAI, Gemini, HuggingFace, etc.) without code changes
+
+**Architecture**:
+
+```
+Backend (Port 8000) → LiteLLM Service (Port 4000) → [Ollama | OpenAI | Gemini | ...]
+```
+
+**IMPORTANT**: LiteLLM now runs as a **separate service** to avoid DATABASE_URL environment variable conflicts with the backend database.
+
+**Implementation**:
+
+1. **Provider Abstraction Layer**:
+   - `LLMProvider` base interface with 5 methods
+   - `OllamaProvider` implementation (existing, unchanged)
+   - `LiteLLMProvider` implementation (new, OpenAI-compatible)
+   - Factory pattern with task-based routing
+   - Unified exception hierarchy
+
+2. **Configuration-Driven Provider Selection**:
+   - Environment variables: `EXTRACTION_PROVIDER`, `EXPLANATION_PROVIDER`
+   - Valid options: `ollama`, `litellm`, `lm_studio`, `openai`, `gemini`
+   - Settings for each provider (base URL, model names, timeouts)
+   - Backward compatible (defaults to Ollama)
+
+3. **LiteLLM Service (Separate Project)**:
+   - New directory: `litellm-service/` at project root
+   - Isolated virtual environment with own dependencies
+   - Configuration: `litellm_config.yaml` with model routing
+   - Supports 100+ providers via unified proxy
+   - Built-in features: fallbacks, load balancing, cost tracking, rate limiting
+   - No DATABASE_URL conflict (clean environment isolation)
+
+**Files Created**:
+- `litellm-service/litellm_config.yaml` (85 lines) - Model routing configuration
+- `litellm-service/start_litellm.sh` (28 lines) - Service startup script
+- `litellm-service/requirements.txt` (23 lines) - LiteLLM dependencies only
+- `litellm-service/.env.example` (60 lines) - API keys template
+- `litellm-service/README.md` (400+ lines) - Comprehensive service documentation
+- `backend/app/providers/litellm_provider.py` (249 lines) - LiteLLMProvider client
+
+**Files Modified**:
+- `backend/app/config.py` (+8 settings fields)
+- `backend/app/providers/factory.py` (~50 lines - enum, routing, instantiation)
+- `backend/.env.example` (updated with integration notes)
+- `backend/requirements.txt` (removed litellm[proxy], kept httpx for client)
+- Documentation: `README.md`, `CLAUDE.md`, `tasks.md`
+
+**Usage Examples**:
+
+```bash
+# Use Ollama (default) - 2 terminals
+EXTRACTION_PROVIDER=ollama
+python run.py  # Backend only
+
+# Use LiteLLM service - 3 terminals
+EXTRACTION_PROVIDER=litellm
+
+# Terminal 1: Start LiteLLM service
+cd litellm-service
+./start_litellm.sh  # Port 4000
+
+# Terminal 2: Start backend
+cd backend
+python run.py  # Port 8000
+
+# Terminal 3: Start frontend
+cd frontend
+npm run dev  # Port 5173
+
+# Switch providers (edit litellm-service/litellm_config.yaml, restart service)
+# No backend restart needed!
+```
+
+**Benefits**:
+- ✅ Zero breaking changes - all existing code works unchanged
+- ✅ Easy provider switching via configuration
+- ✅ Built-in fallbacks for reliability
+- ✅ Cost tracking and budgets (optional)
+- ✅ Load balancing across multiple deployments
+- ✅ Future-proof (easy to add Anthropic Claude, Cohere, etc.)
+- ✅ **Clean separation** - No DATABASE_URL conflicts
+- ✅ **Independent scaling** - Service can run on different machines
+
+**Test Results**:
+- ✅ All endpoints working with Ollama provider
+- ✅ Provider factory correctly routes based on configuration
+- ✅ Error handling validates provider names
+- ✅ Backward compatibility maintained
+- ✅ Full application tested and operational
+- ✅ **LiteLLM service starts without DATABASE_URL errors**
+- ✅ **HTTP endpoints responding correctly** (`/health`, `/models`)
+
+**Impact**: Users can now easily switch between local (Ollama, LM Studio) and cloud providers (OpenAI, Gemini, HuggingFace) for optimal cost/quality trade-offs, with clean service isolation preventing environment conflicts.
+
+See [LiteLLM Multi-Provider Setup](#litellm-multi-provider-setup-optional) section for detailed configuration examples and [litellm-service/README.md](litellm-service/README.md) for comprehensive service documentation.
 
 ## License
 

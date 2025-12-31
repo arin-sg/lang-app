@@ -397,3 +397,108 @@ After implementing Feedback #2 (Smart Extraction Filtering), testing revealed cr
 5. Monitor batch failure logs for extraction issues
 
 ### End of feedback 3
+
+---
+
+## Feedback #4: Multi-Provider LLM Support
+**Status**: 🚧 **In Progress** (Iteration 1.5.5 - 2025-12-31)
+**Impact**: High - Architecture enhancement for flexibility and scalability
+
+### User Requirement
+
+Currently the app uses Ollama as the only LLM host. The user wants flexibility to choose between different LLM providers:
+
+**Local LLM Providers**:
+- Ollama (current default)
+- LM Studio
+
+**Cloud LLM Providers**:
+- OpenAI (GPT models)
+- Gemini (Google AI)
+
+**Key Requirements**:
+1. **Task-specific provider selection**: Use different providers/models for extraction vs explanation/canonicalization tasks
+   - Example: `OLLAMA_EXTRACTION_MODEL` for extraction
+   - Example: `OPENAI_EXPLANATION_MODEL` for canonicalization
+2. **Configuration-driven**: Select provider via environment variables
+3. **No automatic fallback**: Fail fast with clear error messages
+4. **Backward compatible**: Existing Ollama-only configuration should continue to work
+5. **Safe migration**: Keep compatibility shim for existing code
+
+### Architectural Impact
+
+**Current Architecture**:
+- Tight coupling to Ollama via `OllamaClient` class
+- Single provider (Ollama) for all LLM tasks
+- Hardcoded Ollama API endpoints
+
+**Target Architecture**:
+- Provider abstraction layer with `LLMProvider` interface
+- Task-based routing: `EXTRACTION` and `EXPLANATION` tasks
+- Factory pattern for provider instantiation
+- Unified error handling across all providers
+- Provider-agnostic service layer
+
+### Implementation Plan
+
+**Phase 0**: Documentation updates (this file, tasks.md)
+**Phase 1**: Create provider abstraction infrastructure (base class, exceptions)
+**Phase 2**: Refactor Ollama to `OllamaProvider(LLMProvider)`
+**Phase 3**: Create provider factory with task-based routing
+**Phase 4**: Update configuration for multi-provider support
+**Phase 5**: Implement additional providers (LM Studio, OpenAI, Gemini)
+**Phase 6**: Update service layer to use `LLMProvider` interface
+**Phase 7**: Update API endpoints and error handling
+**Phase 8**: Add cloud provider SDKs to requirements.txt
+**Phase 9**: Update project documentation (CLAUDE.md, README.md)
+
+### Technical Decisions
+
+**User Preferences** (from planning session):
+- ✅ Different providers per task (recommended for flexibility)
+- ✅ No automatic fallback - fail fast for predictability
+- ✅ No cost tracking in initial implementation
+- ✅ Keep compatibility shim for safe migration
+
+**Provider Priority**:
+1. Ollama (local, free, default)
+2. LM Studio (local, free, OpenAI-compatible)
+3. OpenAI (cloud, paid, recommended: gpt-4o-mini for cost)
+4. Gemini (cloud, free tier available, gemini-1.5-flash recommended)
+
+### Benefits
+
+**Flexibility**:
+- Use powerful cloud models for extraction, fast local models for explanation
+- Test different models for quality comparison
+- Switch providers without code changes
+
+**Resilience**:
+- Multiple provider options if one is unavailable
+- Clear error messages for debugging
+
+**Future-Proof**:
+- Easy to add new providers (Anthropic Claude, Cohere, etc.)
+- Architecture supports advanced features (streaming, cost tracking, A/B testing)
+
+### Testing Plan
+
+**Unit Tests**:
+- Test each provider implementation independently
+- Mock external APIs for cloud providers
+- Test factory routing logic
+- Test error handling and exception mapping
+
+**Integration Tests**:
+- Verify Ollama functionality unchanged (backward compatibility)
+- Test LM Studio with local instance
+- Test OpenAI with valid API key
+- Test Gemini with valid API key
+- Test mixed providers (Ollama extraction + OpenAI explanation)
+
+**Manual Testing**:
+- Health check reports all provider statuses correctly
+- Invalid API keys show clear error messages
+- Unavailable providers show "not running" status
+
+### End of feedback 4

@@ -1,0 +1,22 @@
+# ============================================
+# LiteLLM Proxy Server Dependencies
+# ============================================
+
+# LiteLLM Proxy - Multi-provider LLM gateway
+# Supports 100+ providers (OpenAI, Anthropic, Google, HuggingFace, etc.)
+litellm[proxy]>=1.30.0
+
+# HTTP client for making requests
+httpx>=0.24.0
+
+# ============================================
+# Optional Dependencies
+# ============================================
+
+# Prisma - Required only if you want to enable cost tracking/budgets
+# Uncomment if you need database features for spend tracking
+# prisma==0.15.0
+
+# Redis - Required for caching and rate limiting features
+# Uncomment if you need caching or advanced rate limiting
+# redis>=4.5.0
