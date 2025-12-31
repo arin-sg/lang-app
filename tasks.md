@@ -734,4 +734,68 @@ See [README.md](README.md#litellm-multi-provider-setup-optional) and [litellm-se
 
 ---
 
+## Iteration 1.5.6: Pattern Extraction & UI Terminology ✅ COMPLETE
+
+### Background
+User testing revealed two issues:
+1. App was not identifying any patterns despite having pattern support in the database
+2. UI was displaying technical term "chunk" instead of user-friendly "Phrase"
+
+### Root Causes
+1. **Pattern Extraction Bug**: The LLM extraction prompt only requested "word" and "chunk" types, never "pattern" types
+2. **Technical Terminology**: Frontend components were displaying raw backend type value "chunk" without user-friendly mapping
+
+### Implemented Features ✅
+
+**1. Pattern Extraction (Backend)**
+- [x] Add Rule 6 to `EXTRACTION_SYSTEM_PROMPT` in extract_service.py
+  - Define pattern types: word order, case patterns, verb patterns, templates
+  - Examples: "Verb-Position-2", "mit + Dativ", "modal verb + infinitive"
+- [x] Add pattern JSON example to `build_extraction_prompt()`
+  - Complete example with all required fields
+  - Evidence section with sentence context
+  - Metadata with CEFR level and learning rationale
+- [x] Update function docstring
+  - Change "words/chunks" to "words/chunks/patterns"
+
+**2. UI Terminology Updates (Frontend)**
+- [x] Update IngestPage.jsx (line 139)
+  - Map 'chunk' → 'Phrase' in Badge component
+- [x] Update LibraryPage.jsx (2 locations)
+  - Item detail modal Badge (line 328)
+  - LibraryItemCard Badge (line 271)
+- [x] Update ReviewPage.jsx (line 290)
+  - Review card Badge component
+
+**Implementation Completed**: 2025-12-31
+
+**Files Modified**:
+- `backend/app/services/extract_service.py` - Pattern rules and examples (3 changes)
+- `frontend/src/pages/IngestPage.jsx` - Badge terminology (1 change)
+- `frontend/src/pages/LibraryPage.jsx` - Badge terminology (2 changes)
+- `frontend/src/pages/ReviewPage.jsx` - Badge terminology (1 change)
+- `CLAUDE.md` - Architecture documentation
+- `README.md` - User documentation
+- `tasks.md` - This file
+
+**Results Achieved**:
+- ✅ Pattern extraction now working (LLM receives pattern examples and rules)
+- ✅ UI consistently displays "Phrase" instead of "chunk" across all pages
+- ✅ Backend still uses "chunk" internally (no breaking changes)
+- ✅ Pattern filter in Library view now functional
+- ✅ All changes backward compatible
+
+**Pattern Types Now Extracted**:
+1. **Word Order Patterns**: V2 (verb-second), verb-final in subordinate clauses
+2. **Case Patterns**: Preposition + case (mit + Dativ, für + Akkusativ)
+3. **Verb Patterns**: Modal verb + infinitive, separable verbs
+4. **Sentence Templates**: "Ich möchte ... [verb]", "Es gibt ..."
+
+**Testing**:
+- Created test script (`test_pattern_extraction.py`) to verify prompt changes
+- Confirmed pattern rule and example present in LLM prompts
+- Frontend components verified with mapping logic
+
+---
+
 Last Updated: 2025-12-31

@@ -122,6 +122,13 @@ CRITICAL RULES (follow exactly):
 
 5. Extract up to {{max_items_per_type}} valuable learning items per type.
 
+6. EXTRACT PATTERNS - Identify grammatical structures:
+   - Word order patterns (V2: verb in position 2, verb-final in subordinate clauses)
+   - Case patterns (preposition + case: "mit + Dativ", "für + Akkusativ")
+   - Verb patterns (modal + infinitive, separable verbs)
+   - Sentence templates ("Ich möchte ... [verb]", "Es gibt ...")
+   Examples: "Verb-Position-2", "mit + Dativ", "modal verb + infinitive"
+
 Return only valid JSON."""
 
 
@@ -131,7 +138,7 @@ def build_extraction_prompt(text: str, max_items_per_type: int = 5) -> str:
 
     Args:
         text: German text to extract from
-        max_items_per_type: Maximum items to extract per type (words/chunks)
+        max_items_per_type: Maximum items to extract per type (words/chunks/patterns)
 
     Note: surface_form is for verification (exact match in text)
           canonical is for learning (dictionary form with German grammar rules applied)
@@ -163,6 +170,16 @@ JSON format:
       "meta": {{}},
       "why_worth_learning": "common verb phrase pattern",
       "evidence": {{"sentence_idx": 0, "sentence": "Sie verlassen das Hotel und suchen ein Taxi.", "left_context": "", "right_context": ""}}
+    }},
+    {{
+      "type": "pattern",
+      "surface_form": "verb in position 2",
+      "canonical": "Verb-Position-2 (V2)",
+      "english_gloss": "Main clause verb must be in second position",
+      "pos_hint": "SYNTAX_PATTERN",
+      "meta": {{"cefr_level": "A2"}},
+      "why_worth_learning": "fundamental German word order rule",
+      "evidence": {{"sentence_idx": 0, "sentence": "Heute esse ich Pizza.", "left_context": "", "right_context": ""}}
     }}
   ],
   "edges": []

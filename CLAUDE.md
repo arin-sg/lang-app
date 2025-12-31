@@ -407,7 +407,14 @@ npx shadcn@latest add [component-name]
    - Extract multi-word fixed expressions where meaning changes when combined
    - Examples: "Ferien machen", "an der Universität", "Bescheid geben"
 
-4. **Configurable Extraction Limits**:
+4. **Pattern Extraction** (Iteration 1.5.6):
+   - Grammatical structures and templates
+   - Word order patterns (V2: verb in position 2)
+   - Case patterns (preposition + case: "mit + Dativ")
+   - Verb patterns (modal + infinitive, separable verbs)
+   - Sentence templates ("Ich möchte ... [verb]", "Es gibt ...")
+
+5. **Configurable Extraction Limits**:
    - `MAX_ITEMS_PER_TYPE=5` (per batch, per type)
    - Prevents LLM timeouts on local models
    - Focuses on highest-value items
@@ -527,8 +534,10 @@ The system includes 17 German grammar error categories seeded in `error_tags` ta
 - Iteration 1.5.2 (Verb phrase normalization)
 - Iteration 1.5.3 (Smart extraction filtering)
 - Iteration 1.5.4 (Extraction quality & validation fixes)
+- Iteration 1.5.5 (Multi-provider LLM support)
+- Iteration 1.5.6 (Pattern extraction & UI terminology)
 
-**Current Status**: Ready for user testing with robust extraction quality controls and validation
+**Current Status**: Ready for user testing with pattern extraction and improved UI terminology
 
 ## Key Documentation
 

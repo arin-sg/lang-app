@@ -268,7 +268,7 @@ function LibraryItemCard({ item, onViewDetail, isSelected, onToggleSelect }) {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <h3 className="text-xl font-bold break-words">{canonical_form}</h3>
                 <Badge variant="secondary" className="font-semibold flex-shrink-0">
-                  {type}
+                  {type === 'chunk' ? 'Phrase' : type.charAt(0).toUpperCase() + type.slice(1)}
                 </Badge>
               </div>
               <p className="text-muted-foreground">{english_gloss || 'No translation'}</p>
@@ -325,7 +325,7 @@ function ItemDetailModal({ item, onClose }) {
           <DialogTitle className="flex items-center justify-between gap-4">
             <span className="text-3xl font-extrabold">{canonical_form}</span>
             <Badge variant="secondary" className="font-semibold text-base">
-              {item.type}
+              {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
             </Badge>
           </DialogTitle>
         </DialogHeader>

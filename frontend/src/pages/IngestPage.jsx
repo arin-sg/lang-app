@@ -136,7 +136,7 @@ export default function IngestPage() {
                         <div className="flex items-center justify-between gap-4">
                           <span className="text-lg font-bold">{item.canonical_form}</span>
                           <Badge variant="secondary" className="font-semibold">
-                            {item.type}
+                            {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
                           </Badge>
                         </div>
 

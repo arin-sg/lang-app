@@ -287,7 +287,7 @@ function FlipCardReview({ item, onGrade, isFlipped, onFlip, selfGraded }) {
         <Card className="border-2 w-full max-w-2xl">
           <CardContent className="pt-10 pb-10 text-center space-y-6">
             <Badge variant="secondary" className="text-sm font-semibold">
-              {item.type}
+              {item.type === 'chunk' ? 'Phrase' : item.type.charAt(0).toUpperCase() + item.type.slice(1)}
             </Badge>
             <div className="space-y-4">
               <p className="text-xl font-semibold text-muted-foreground">What is this in German?</p>

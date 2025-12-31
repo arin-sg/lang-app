@@ -655,6 +655,49 @@ Backend (Port 8000) → LiteLLM Service (Port 4000) → [Ollama | OpenAI | Gemin
 
 **IMPORTANT**: LiteLLM now runs as a **separate service** to avoid DATABASE_URL environment variable conflicts with the backend database.
 
+---
+
+### Iteration 1.5.6 - Pattern Extraction & UI Terminology ✅ COMPLETE
+
+**Enhancement**: Enable pattern extraction from German text and improve UI terminology
+
+**Problems Addressed**:
+- App was not identifying grammatical patterns despite having pattern type support in database
+- UI displayed technical term "chunk" instead of user-friendly "Phrase"
+
+**Solutions**:
+
+1. **Pattern Extraction** (Backend):
+   - Added Rule 6 to `EXTRACTION_SYSTEM_PROMPT` defining pattern extraction
+   - Included pattern example in JSON extraction format
+   - Patterns now include: V2 word order, case patterns (mit + Dativ), verb patterns, sentence templates
+   - Updated docstring to mention patterns alongside words and chunks
+
+2. **UI Terminology** (Frontend):
+   - Updated all UI displays to show "Phrase" instead of "chunk"
+   - Backend still uses "chunk" internally (no breaking changes)
+   - Applied across IngestPage, LibraryPage, ReviewPage (4 locations)
+   - Consistent capitalization with mapping logic
+
+**Files Modified**:
+- Backend: [extract_service.py](backend/app/services/extract_service.py) (system prompt, examples, docstring)
+- Frontend: [IngestPage.jsx](frontend/src/pages/IngestPage.jsx), [LibraryPage.jsx](frontend/src/pages/LibraryPage.jsx), [ReviewPage.jsx](frontend/src/pages/ReviewPage.jsx)
+- Docs: [CLAUDE.md](CLAUDE.md), [README.md](README.md), [tasks.md](tasks.md)
+
+**Impact**:
+- Learners can now see and learn German grammatical patterns
+- More user-friendly terminology throughout the interface
+- Pattern filter in Library view now shows results
+- All changes backward compatible
+
+**Pattern Examples**:
+- **Word Order**: "Verb-Position-2 (V2)" - Main clause verb in second position
+- **Case Patterns**: "mit + Dativ" - Preposition case requirements
+- **Verb Patterns**: "modal verb + infinitive" - Ich muss ... gehen
+- **Templates**: "Ich möchte ... [verb]" - Common sentence structures
+
+---
+
 **Implementation**:
 
 1. **Provider Abstraction Layer**:
