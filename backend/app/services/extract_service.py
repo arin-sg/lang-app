@@ -59,7 +59,6 @@ def validate_and_filter_items(items: List[ExtractionItem]) -> List[ExtractionIte
     - Proper nouns (known cities, countries, person names)
     - Simple connectors (und, aber, oder, denn)
     - Articles alone (der, die, das, ein, eine)
-    - Patterns without required metadata (NEW)
 
     Args:
         items: List of items extracted by LLM
@@ -79,53 +78,24 @@ def validate_and_filter_items(items: List[ExtractionItem]) -> List[ExtractionIte
         canonical_stripped = item.canonical.strip()
         surface_stripped = item.surface_form.strip()
 
-        # 2. NEW: Pattern-specific validation
-        if item.type == "pattern":
-            # Require pattern_meta for patterns
-            if not item.pattern_meta:
-                continue
+        # 2. Reject low-value items (connectors, articles)
+        if canonical_stripped.lower() in FILTER_LIST:
+            continue
+        if surface_stripped.lower() in FILTER_LIST:
+            continue
 
-            # Validate grammar_rule is non-empty
-            if not item.pattern_meta.grammar_rule or not item.pattern_meta.grammar_rule.strip():
-                continue
-
-            # Validate structure_type (Pydantic already enforces Literal, but double-check)
-            valid_types = {"connector", "verb_prep", "sentence_structure", "idiom"}
-            if item.pattern_meta.structure_type not in valid_types:
-                continue
-
-            # Validate slots is a list
-            if not isinstance(item.pattern_meta.slots, list):
-                continue
-
-        # 3. Skip proper noun filtering for patterns (they're grammatical structures)
-        if item.type != "pattern":
-            # Reject low-value items (connectors, articles)
-            if canonical_stripped.lower() in FILTER_LIST:
-                continue
-            if surface_stripped.lower() in FILTER_LIST:
-                continue
-
-            # Reject known proper nouns
-            if is_likely_proper_noun(canonical_stripped):
-                continue
-            if is_likely_proper_noun(surface_stripped):
-                continue
+        # 3. Reject known proper nouns
+        if is_likely_proper_noun(canonical_stripped):
+            continue
+        if is_likely_proper_noun(surface_stripped):
+            continue
 
         validated.append(item)
 
     return validated
 
 
-# Harden the system prompt to enforce JSON-only outputs and reduce hallucinations.
 EXTRACTION_SYSTEM_PROMPT = """You are a German language learning assistant. Extract learnable items from German text.
-
-GLOBAL OUTPUT RULES (quality safeguards):
-- Return exactly ONE JSON object. No prose, no markdown/code fences, no prefixes/suffixes.
-- If surface_form, canonical, or evidence.sentence would be empty, SKIP the item; for english_gloss give a concise best-effort gloss (do not leave blank).
-- evidence.sentence must be copied verbatim from the provided sentences; do not paraphrase or write "full sentence".
-- Stay within the numeric limits stated in the user message; ignore template placeholders like {{max_items_per_type}} if present.
-- Patterns and chunks are REQUIRED when observable: emit at least one pattern if any sentence shows verb position, subordinate clause verb-final, case-governing preposition, modal+infinitive, or separable verb behavior. Emit chunks for meaningful multi-word spans (collocations/phrases) you see.
 
 CRITICAL RULES (follow exactly):
 
@@ -145,43 +115,19 @@ CRITICAL RULES (follow exactly):
    - Text "machen Ferien" → extract "Ferien machen"
    - Text "suchen ein Taxi" → extract "ein Taxi suchen"
 
-4. REQUIRED fields for EVERY item (these fields are MANDATORY):
+4. REQUIRED fields for EVERY item:
    - surface_form: EXACT text from input (copy exactly as appears)
    - canonical: Dictionary form (infinitive for verbs, with rules above)
-   - english_gloss: English translation (never leave blank)
-   - evidence: MUST include full object with sentence_idx, sentence, left_context, right_context
-     - evidence.sentence: FULL sentence where found (copy the actual German sentence verbatim)
+   - evidence.sentence: FULL sentence where found (NOT "full sentence" - copy the actual German sentence)
 
 5. Extract up to {{max_items_per_type}} valuable learning items per type.
-   # NOTE: Use the numeric cap provided in the user prompt; do not fabricate items to hit the cap, and include ALL three types (words, chunks/phrases, patterns) when present.
 
-6. EXTRACT PATTERNS - Identify grammatical structures and abstract them into templates:
-
-   PATTERN TYPES (structure_type):
-   - connector: Multi-part connectors (e.g., "je ... desto", "entweder ... oder")
-   - verb_prep: Verb + preposition + case (e.g., "warten auf + AKK")
-   - sentence_structure: Word order patterns (e.g., "Verb-Position-2")
-   - idiom: Fixed expressions with grammatical significance (e.g., "es gibt + AKK")
-
-   PLACEHOLDER SYNTAX (use UPPERCASE in square brackets for variable parts):
-   - [ADJ] = adjective slot, [NOUN] = noun slot, [VERB] = verb slot
-   - [KOMPARATIV] = comparative form
-   - [AKK] = accusative object, [DAT] = dative object, [GEN] = genitive object
-   - [SUBJECT] = subject slot
-
-   PATTERN METADATA REQUIRED:
-   - structure_type: One of: connector | verb_prep | sentence_structure | idiom
-   - slots: List of placeholders used (e.g., ["KOMPARATIV", "KOMPARATIV"])
-   - grammar_rule: Brief explanation of when/how to use this pattern
-
-   EXAMPLES:
-   Input: "Je schneller du fährst, desto früher kommst du an."
-   Output canonical: "Je [KOMPARATIV], desto [KOMPARATIV]"
-   Output pattern_meta: {"structure_type": "connector", "slots": ["KOMPARATIV", "KOMPARATIV"], "grammar_rule": "Correlative conjunction expressing proportional relationship"}
-
-   Input: "Ich warte auf den Bus."
-   Output canonical: "warten auf + [AKK]"
-   Output pattern_meta: {"structure_type": "verb_prep", "slots": ["AKK"], "grammar_rule": "Verb 'warten' requires preposition 'auf' with accusative case"}
+6. EXTRACT PATTERNS - Identify grammatical structures:
+   - Word order patterns (V2: verb in position 2, verb-final in subordinate clauses)
+   - Case patterns (preposition + case: "mit + Dativ", "für + Akkusativ")
+   - Verb patterns (modal + infinitive, separable verbs)
+   - Sentence templates ("Ich möchte ... [verb]", "Es gibt ...")
+   Examples: "Verb-Position-2", "mit + Dativ", "modal verb + infinitive"
 
 Return only valid JSON."""
 
@@ -197,17 +143,11 @@ def build_extraction_prompt(text: str, max_items_per_type: int = 5) -> str:
     Note: surface_form is for verification (exact match in text)
           canonical is for learning (dictionary form with German grammar rules applied)
     """
-    # Add explicit JSON-only and no-markdown guidance to reduce parse errors.
-    return f"""Extract up to {max_items_per_type} key German items per type from this text.
-
-Return exactly ONE JSON object with THREE required fields: "sentences", "items", and "edges".
-Do not add markdown/code fences, prose, or extra text.
-
-IMPORTANT: Your JSON MUST start with "sentences" field containing the input sentences.
+    return f"""Extract up to {max_items_per_type} key German items per type from this text:
 
 {text}
 
-JSON format (MUST include all three fields):
+JSON format:
 {{
   "sentences": [{{"idx": 0, "text": "Ich muss heute eine wichtige Entscheidung treffen."}}],
   "items": [
@@ -237,12 +177,7 @@ JSON format (MUST include all three fields):
       "canonical": "Verb-Position-2 (V2)",
       "english_gloss": "Main clause verb must be in second position",
       "pos_hint": "SYNTAX_PATTERN",
-      "pattern_meta": {{
-        "structure_type": "sentence_structure",
-        "slots": ["SUBJECT", "VERB"],
-        "grammar_rule": "In main clauses, the finite verb always occupies the second position (V2 rule)",
-        "cefr_level": "A2"
-      }},
+      "meta": {{"cefr_level": "A2"}},
       "why_worth_learning": "fundamental German word order rule",
       "evidence": {{"sentence_idx": 0, "sentence": "Heute esse ich Pizza.", "left_context": "", "right_context": ""}}
     }}
@@ -250,7 +185,7 @@ JSON format (MUST include all three fields):
   "edges": []
 }}
 
-CRITICAL: Your response must be ONLY the JSON object above. Start with {{"sentences": [...], and include all three fields (sentences, items, edges)."""
+Return valid JSON only."""
 
 
 def split_into_sentence_batches(text: str, batch_size: int = 2) -> List[str]:
