@@ -83,12 +83,12 @@ class IngestService:
                 item = self.graph_store.get_item_by_id(verified_item.existing_item_id)
             else:
                 # Create new item
-                # NEW: Handle pattern metadata separately
+                # Handle pattern metadata - support both pattern_meta (new) and meta (current)
                 if verified_item.type == "pattern" and verified_item.pattern_meta:
-                    # Serialize pattern_meta to dict for storage
+                    # NEW: Serialize pattern_meta to dict for storage
                     metadata = verified_item.pattern_meta.dict()
                 else:
-                    # LEGACY: Use generic meta for words/chunks
+                    # Use generic meta (works for words/chunks/patterns)
                     metadata = verified_item.meta or {}
 
                 # Add additional info if available

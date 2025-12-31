@@ -122,12 +122,19 @@ CRITICAL RULES (follow exactly):
 
 5. Extract up to {{max_items_per_type}} valuable learning items per type.
 
-6. EXTRACT PATTERNS - Identify grammatical structures:
-   - Word order patterns (V2: verb in position 2, verb-final in subordinate clauses)
-   - Case patterns (preposition + case: "mit + Dativ", "für + Akkusativ")
-   - Verb patterns (modal + infinitive, separable verbs)
-   - Sentence templates ("Ich möchte ... [verb]", "Es gibt ...")
-   Examples: "Verb-Position-2", "mit + Dativ", "modal verb + infinitive"
+6. EXTRACT PATTERNS - Identify grammatical structures (IMPORTANT):
+   Target: Look for multi-part connectors, verb-preposition pairs, or sentence structures
+
+   Pattern Types to Extract:
+   - Connectors: "je ... desto", "entweder ... oder", "weder ... noch"
+   - Verb + Preposition: "warten auf + [AKK]", "denken an + [AKK]"
+   - Sentence structures: "Verb-Position-2 (V2)", "verb-final in subordinate clauses"
+   - Templates: "Ich möchte ... [verb]", "Es gibt + [AKK]"
+
+   How to Abstract:
+   - Replace variable parts with UPPERCASE placeholders: [AKK], [DAT], [KOMPARATIV], [VERB], [ADJ]
+   - Canonical form should be the template, not the specific example
+   - Example: "Je schneller du fährst" → canonical: "Je [KOMPARATIV], desto [KOMPARATIV]"
 
 Return only valid JSON."""
 
@@ -173,13 +180,23 @@ JSON format:
     }},
     {{
       "type": "pattern",
-      "surface_form": "verb in position 2",
-      "canonical": "Verb-Position-2 (V2)",
-      "english_gloss": "Main clause verb must be in second position",
-      "pos_hint": "SYNTAX_PATTERN",
-      "meta": {{"cefr_level": "A2"}},
-      "why_worth_learning": "fundamental German word order rule",
-      "evidence": {{"sentence_idx": 0, "sentence": "Heute esse ich Pizza.", "left_context": "", "right_context": ""}}
+      "surface_form": "warten auf den Bus",
+      "canonical": "warten auf + [AKK]",
+      "english_gloss": "to wait for (+ accusative object)",
+      "pos_hint": "VERB_PREP",
+      "meta": {{"structure_type": "verb_prep", "cefr_level": "A2"}},
+      "why_worth_learning": "common verb-preposition pattern",
+      "evidence": {{"sentence_idx": 0, "sentence": "Ich warte auf den Bus.", "left_context": "", "right_context": ""}}
+    }},
+    {{
+      "type": "pattern",
+      "surface_form": "Je schneller du fährst, desto früher kommst du an",
+      "canonical": "Je [KOMPARATIV], desto [KOMPARATIV]",
+      "english_gloss": "The more..., the more...",
+      "pos_hint": "CONNECTOR",
+      "meta": {{"structure_type": "connector", "cefr_level": "B1"}},
+      "why_worth_learning": "essential comparative structure",
+      "evidence": {{"sentence_idx": 0, "sentence": "Je schneller du fährst, desto früher kommst du an.", "left_context": "", "right_context": ""}}
     }}
   ],
   "edges": []

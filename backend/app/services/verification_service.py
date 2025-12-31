@@ -426,11 +426,12 @@ class VerificationService:
                 verification_stats['invalid'] += 1
                 continue  # DROP items with blank surface_form
 
-            # Step 4b: NEW - Pattern-specific validation (defense in depth)
-            if item.type == "pattern":
-                if not item.pattern_meta or not item.pattern_meta.grammar_rule:
+            # Step 4b: Pattern-specific validation (optional, only if pattern_meta is used)
+            if item.type == "pattern" and item.pattern_meta:
+                # If pattern_meta exists, validate it has required fields
+                if not item.pattern_meta.grammar_rule:
                     verification_stats['invalid'] += 1
-                    continue  # DROP patterns without grammar_rule
+                    continue  # DROP patterns with empty grammar_rule
 
             # Create verified item
             verified_item = VerifiedExtractionItem(
